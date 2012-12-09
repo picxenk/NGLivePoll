@@ -1,0 +1,13 @@
+{
+    "name": "NGLivePoll"
+  , "version": "0.5"
+  , "private": true
+  , "dependencies": {
+      "node-static": "latest"
+    , "socket.io": "latest"
+  }
+  , "devDependencies": {
+  }
+  , "engine": "node >= 0.8"
+  
+}
