@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="http://code.jquery.com/jquery-1.8.2.min.js"></script>
+    <script src="/js/processing-1.4.1.min.js"></script>
+    <style>
+        body { margin: 0; padding 0; }
+        canvas {image-rendering: -webkit-optimize-contrast !important;}
+    </style>
+</head>
+
+<body>
+<canvas id="screen" tabindex="0" width="10" height="10"></canvas>
+
+<script id="script1" type="text/javascript">
+var socket = {};
+var pt_images = ["pt_title.png", "pt_01.png", "pt_02.png",
+                 "pt_03.png", "pt_04.png", "pt_05.png",
+                 "pt_06.png", "pt_07.png",
+                 "pt_result_score.png", "pt_end.png"];
+var vote_data = {count:0, poll:[0,0]};
+var vote_result = {
+};
+var draw_bar = false;
+var show_saved = false;
+var show_client_count = false;
+var sketch = new Processing.Sketch();
+
+/* image cache */
+for (var i=0; i<pt_images.length; i++) {
+    sketch.imageCache.add("/images/"+pt_images[i]);
+}
+
+sketch.attachFunction = function(p) {
+    var img;
+    var pt_num;
+    var font;
+    var theme_color = p.color(24, 24, 15);
+
+    p.setup = function() {
+        p.size(p.screenWidth, p.screenHeight);
+        p.frameRate(2);
+        p.strokeWeight(5);
+        p.stroke(theme_color);
+
+        font = p.loadFont("Daum_SemiBold.ttf");
+        p.textFont(font, 90);
+        pt_num = 0;
+        img = p.loadPT(pt_images[pt_num]);
+        qr = p.loadImage("/images/qr.png");
+    }
+    p.draw = function() {
+        p.background(0);
+        p.image(img, 0, 0, p.screenWidth, p.screenHeight);
+
+        //show QR code for connecting mobile voting client
+        if (pt_num == 0) {
+            var qrx = 390*p.screenWidth/1000;
+            var qry = 260*p.screenHeight/750;
+            var qrw = 220*p.screenWidth/1000;
+            p.image(qr, qrx, qry, qrw, qrw);
+        }
+        if(show_saved) {
+            p.drawVoteBar(vote_result[pt_num], show_saved);
+        } else {
+            p.drawVoteBar(vote_data, false);
+        }
+
+        // result voting score
+        if (pt_num == pt_images.length-2) {
+            p.showScore(vote_result);
+        }
+
+        // show client total count
+        if (show_client_count) {
+            p.fill(theme_color);
+            p.rect(0,0,p.screenWidth,100);
+            p.fill(255);
+            p.textFont(font, 90);
+            p.textAlign(p.CENTER, p.CENTER);
+            p.text(vote_data.count, 150, 50);
+            p.fill(160);
+            p.textFont(font, 50);
+            p.textAlign(p.CENTER, p.CENTER);
+            p.text("192.168.0.15:8000", p.screenWidth/2, 50);
+        }
+    };
+
+    p.loadPT = function(file_path) {
+        return p.loadImage("/images/"+file_path);
+    };
+
+    p.keyPressed = function() {
+        if (p.key.toString() == '1') {
+            show_client_count = !show_client_count;
+        }
+        if (p.key.toString() == 's' || p.key.toString() == 'S') {
+            show_saved = true;
+        }
+        if (p.key.toString() == 'a' || p.key.toString() == 'A') {
+            show_saved = false;
+        }
+        if (p.key.toString() == 'q' || p.key.toString() == 'Q') {
+            var save_data = {
+                num: pt_num,
+                data: vote_data,
+            };
+            socket.emit('save_vote_result', save_data);
+        }
+        if (p.keyCode == p.RIGHT) {
+            pt_num = p.min(pt_images.length-1, pt_num + 1);
+        }
+        if (p.keyCode == p.LEFT) {
+            pt_num = p.max(0, pt_num - 1);
+        }
+        img = p.loadPT(pt_images[pt_num]);
+
+        if (p.keyCode == p.UP) {
+            draw_bar = true;
+        }
+        if (p.keyCode == p.DOWN) {
+            draw_bar = false;
+        }
+    };
+
+    p.drawVoteBar = function(data, saved) {
+        if (0 < pt_num && pt_num < 8) {
+            var sy = (600*p.screenHeight)/750;
+            var sh = (115*p.screenHeight)/750;
+            var bar_width = p.screenWidth;
+            var total_poll = data.poll[0] + data.poll[1];
+            p.textAlign(p.LEFT, p.BASELINE);
+            if (data.count > 0 && total_poll > 0) {
+                left_width = p.max(1, (data.poll[0]/total_poll)*bar_width);
+            } else {
+                left_width = bar_width/2;
+            }
+
+            if (saved) p.stroke(180,30,30);
+            else p.stroke(theme_color);
+
+            p.fill(0);
+            p.rect(0, sy, bar_width, sh);
+            if (draw_bar) {
+                //right rgb(24, 24, 15)
+                p.fill(theme_color);
+                p.rect(0, sy, bar_width, sh);
+                p.fill(255);
+                p.text(data.poll[1], bar_width-sh, sy+sh-10);
+                //left 
+                p.fill(255);
+                p.rect(0, sy, left_width, sh);
+                p.fill(theme_color);
+                p.text(data.poll[0], 0+sh-50, sy+sh-10);
+            }
+        }
+    };
+
+    p.showScore = function(result) {
+        var leftX = (170*p.screenWidth)/1000;
+        var rightX = (665*p.screenWidth)/1000;
+        var leftY = (360*p.screenHeight)/750;
+        var w = (160*p.screenWidth)/1000;
+        var h = (250*p.screenHeight)/750;
+        var left_win = 0;
+        var right_win = 0;
+        p.textFont(font, 200);
+
+        for (var i=1; i<=7; i++) {
+            // console.log(result[i]);
+            var poll = result[i].poll;
+            if (poll[0] > poll[1]) left_win = left_win + 1;
+            if (poll[0] < poll[1]) right_win = right_win + 1;
+        }
+
+        p.stroke(theme_color);
+        //left 
+        p.fill(255);
+        p.rect(leftX, leftY, w, h);
+        p.fill(theme_color);
+        p.textAlign(p.CENTER, p.CENTER);
+        p.text(left_win, leftX+w/2, leftY+h/2);
+        //right
+        p.fill(theme_color);
+        p.rect(rightX, leftY, w, h);
+        p.fill(255);
+        p.text(right_win, rightX+w/2, leftY+h/2);
+    };
+  
+};
+var canvas = document.getElementById("screen");
+var p = new Processing(canvas, sketch);
+
+$(document).ready(function() {
+    socket = io.connect("ws://"+window.location.host);
+    
+    socket.on('connect', function() {});
+    socket.on('show_result', function(data) {
+        vote_data = data;
+    });
+    socket.on('vote_result', function(result) {
+        vote_result = result;
+    });
+    socket.on('disconnect', function() {});
+    setInterval(function() {
+        socket.emit('update', {});
+        socket.emit('request_vote_result', {});
+    }, 2000);
+});
+</script>
+<script src="/socket.io/socket.io.js"></script>
+</body>
+</html>

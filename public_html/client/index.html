@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title> [놀자페스티벌] 정당투표 </title>
+    <link rel="stylesheet" href="http://code.jquery.com/mobile/1.2.0/jquery.mobile-1.2.0.min.css"/>
+    <script src="http://code.jquery.com/jquery-1.8.2.min.js"></script>
+    <script src="http://code.jquery.com/mobile/1.2.0/jquery.mobile-1.2.0.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+<div data-role="page">
+<div data-role="header">
+    <h1>Nolja Festival</h1>
+</div>
+
+<div data-role="content">
+<fieldset data-role="controlgroup">
+    <legend>어느 당의 정책을 지지합니까?</legend>
+    <input type="radio" name="radio-choice" id="radio-choice-1" value="1" />
+    <label for="radio-choice-1">기호1번 : 진보당</label>
+
+    <input type="radio" name="radio-choice" id="radio-choice-2" value="2"  />
+    <label for="radio-choice-2">기호2번 : 보수당</label>
+</fieldset>
+<br/>
+<font size="-1">
+ [정보]: <span id="message"> </span>
+ </font>
+</div>
+</div>
+<script>
+var voting_interval = 2000;
+var message = $('#message');
+var radio;
+var data = {radio:0};
+function update_result() {
+    radio = $('input:radio[name=radio-choice]:checked').val();
+    data.radio = radio;
+    // message.html(radio);
+}
+
+$(document).bind('pageinit', function() {
+
+    var socket = io.connect("ws://"+window.location.host);
+    socket.on('connect', function() {
+        message.html(window.location.host+'에 연결되었습니다.');
+    });
+    socket.on('disconnect', function() {
+        message.html('서버로의 연결이 끊어졌습니다. 다시 접속해보세요.');
+    });
+
+    $('input').change(function() {
+        update_result();
+        socket.emit('vote', data);
+    });
+
+});
+</script>
+</body>
+</html>

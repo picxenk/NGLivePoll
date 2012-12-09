@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>test</title>
+</head>
+<body>
+
+    <ul>
+    <li> Count : <span id="result_count"></span>
+    <li> 1 : <span id="result_1"></span>
+    <li> 2 : <span id="result_2"></span>
+    </ul>
+
+<script src="http://code.jquery.com/jquery-1.8.2.min.js"></script>
+<script>
+var result_count = $('#result_count');
+var result_1 = $('#result_1');
+var result_2 = $('#result_2');
+
+$(document).ready(function() {
+    var socket = io.connect("ws://"+window.location.host);
+    
+    socket.on('connect', function() {});
+    socket.on('show_result', function(data) {
+        // console.log(data);
+        // console.log(data.poll);
+        update_result(data);
+    });
+    socket.on('disconnect', function() {});
+    setInterval(function() {
+        socket.emit('update', {});
+    }, 2000);
+});
+
+function update_result(data) {
+    result_count.html(data.count);
+    result_1.html(data.poll[0]);
+    result_2.html(data.poll[1]);
+}
+</script>
+<script src="/socket.io/socket.io.js"></script>
+</body>
+</html>

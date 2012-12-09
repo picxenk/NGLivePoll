@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <script src="http://code.jquery.com/jquery-1.8.2.min.js"></script>
+    <script src="/js/processing-1.4.1.min.js"></script>
+    <style>
+        body { margin: 0; padding 0; }
+        canvas {image-rendering: -webkit-optimize-contrast !important;}
+    </style>
+</head>
+
+<body>
+<canvas id="screen" tabindex="0" width="10" height="10"></canvas>
+
+<script id="script1" type="text/javascript">
+var pt_images = ["pt_title.png", "pt_01.png", "pt_02.png",
+                 "pt_03.png", "pt_04.png", "pt_05.png",
+                 "pt_06.png", "pt_07.png",
+                 "pt_result_score.png", "pt_end.png"];
+var sketch = new Processing.Sketch();
+
+/* image cache */
+for (var i=0; i<pt_images.length; i++) {
+    sketch.imageCache.add("/images/"+pt_images[i]);
+}
+
+sketch.attachFunction = function(p) {
+    var img;
+    var font;
+    var left_w, right_w;
+    var left_vote, right_vote;
+    var left_n, right_n;
+    var show;
+
+    p.setup = function() {
+        p.size(p.screenWidth, p.screenHeight);
+        // p.frameRate(2);
+
+        font = p.loadFont("Daum_SemiBold.ttf");
+        p.textFont(font, 90);
+        pt_num = 0;
+        show = false;
+
+        left_w = 10;
+        right_w = 10;
+        left_n = 1;
+        right_n = 1;
+
+        left_vote = 62;
+        right_vote = 21;
+    };
+    p.draw = function() {
+
+        p.background(0);
+        p.textAlign(p.CENTER, p.CENTER);
+
+        p.textFont(font, 60);
+        p.fill(200);
+        p.text('개표결과', p.screenWidth/2, 50);
+        p.textFont(font, 90);
+        p.fill(100, 100, 200);
+        p.text('진보당', 150, 200);
+        p.fill(200, 100, 100);
+        p.text('보수당', 150, 350);
+
+        p.fill(100, 100, 200);
+        p.rect(300, 180, left_w, 50);
+        p.fill(200, 100, 100);
+        p.rect(300, 330, right_w, 50);
+
+        if (show) {
+            if (left_vote*10 > left_w) {
+                left_w = left_w + 2;
+            } else {
+                p.fill(200);
+                p.text(left_vote, 350+left_vote*10, 180);
+            }
+            if (right_vote*10 > right_w) {
+                right_w = right_w + 2;
+            } else {
+                p.fill(200);
+                p.text(right_vote, 350+right_vote*10, 330);
+            }
+        }
+    };
+
+    p.keyPressed = function() {
+        if (p.key.toString() == '1') {
+            show = true;
+        }
+    };
+
+  
+};
+var canvas = document.getElementById("screen");
+var p = new Processing(canvas, sketch);
+
+</script>
+</body>
+</html>
